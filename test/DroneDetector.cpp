@@ -1,3 +1,5 @@
+//double direction[2] = {top.x - center.x, top.y - center.y }   ;
+                break;
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include <iostream>
@@ -15,7 +17,7 @@ BOOST_AUTO_TEST_CASE(no_drone)
     Mat image = imread("no_drone.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat grey;
     image.convertTo(grey, CV_8UC1);
-    DroneDetector detector(1);
+    DroneDetector detector(1,'I');
     int deltaExposure = 0;
     std::vector<DroneState> states = detector.FindDrones(grey, &deltaExposure);
     BOOST_CHECK_EQUAL(deltaExposure, 100);
@@ -27,7 +29,7 @@ BOOST_AUTO_TEST_CASE(detect_drone)
     Mat image = imread("drone.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat grey;
     image.convertTo(grey, CV_8UC1);
-    DroneDetector detector(1);
+    DroneDetector detector(1,'I');
     int deltaExposure = 0;
     std::vector<DroneState> states = detector.FindDrones(grey, &deltaExposure);
     BOOST_CHECK_EQUAL(deltaExposure, 0);
@@ -39,7 +41,7 @@ BOOST_AUTO_TEST_CASE(detect_drones)
     Mat image = imread("3drones.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat grey;
     image.convertTo(grey, CV_8UC1);
-    DroneDetector detector(3);
+    DroneDetector detector(3,'I');
     int deltaExposure = 0;
     std::vector<DroneState> state = detector.FindDrones(grey, &deltaExposure);
     BOOST_CHECK_EQUAL(deltaExposure, 0);
@@ -56,12 +58,12 @@ BOOST_AUTO_TEST_CASE(detect_drones_partial)
     Mat image = imread("3drones.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat grey;
     image.convertTo(grey, CV_8UC1);
-    DroneDetector detector(3);
+    DroneDetector detector(3,'I');
     int deltaExposure = 0;
     // Find three drones, set initial drone states
     std::vector<DroneState> states = detector.FindDrones(grey, &deltaExposure);
     BOOST_CHECK_EQUAL(states.size(), 3);
-    
+
     Mat image2 = imread("drone.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat grey2;
     image2.convertTo(grey2, CV_8UC1);
@@ -102,7 +104,7 @@ BOOST_AUTO_TEST_CASE(too_many)
     Mat image = imread("too_many.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat grey;
     image.convertTo(grey, CV_8UC1);
-    DroneDetector detector(1);
+    DroneDetector detector(1,'I');
     int deltaExposure = 0;
     std::vector<DroneState> states = detector.FindDrones(grey, &deltaExposure);
     BOOST_CHECK_EQUAL(deltaExposure, -100);
@@ -115,7 +117,7 @@ BOOST_AUTO_TEST_CASE(too_few)
     Mat image = imread("too_few.png", CV_LOAD_IMAGE_GRAYSCALE);
     Mat grey;
     image.convertTo(grey, CV_8UC1);
-    DroneDetector detector(1);
+    DroneDetector detector(1,'I');
     int deltaExposure = 0;
     std::vector<DroneState> states = detector.FindDrones(grey, &deltaExposure);
     BOOST_CHECK_EQUAL(deltaExposure, 100);

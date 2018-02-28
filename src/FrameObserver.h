@@ -23,7 +23,7 @@ public:
     // Parameters:
     //  [in]    pCamera             The camera the frame was queued at
     //
-    FrameObserver(CameraPtr pCamera, unsigned int nrDrones, const std::string& ip, const std::string& port);
+    FrameObserver(CameraPtr pCamera, unsigned int nrDrones, const std::string& ip, const std::string& port, char shape);
     
     //
     // This is our callback routine that will be executed on every received frame.

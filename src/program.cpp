@@ -15,7 +15,7 @@ int main( int argc, char* argv[] )
     std::cout<<"/////////////////////////////////////////////\n\n";
 
     if(argc < 4) {
-        std::cout << "Example usage: tracker 3 192.168.0.100 6000\n";
+        std::cout << "Example usage: tracker 3 192.168.0.100 6000 L\n";
         return 1;
     }
     long n = strtol(argv[1], NULL, 10);
@@ -27,11 +27,21 @@ int main( int argc, char* argv[] )
     std::cout << "Searching for " << nrDrones << " drones\n";
     std::string ip(argv[2]);
     std::string port(argv[3]);
+    char shape;
+    if(argc == 5){
+    	shape = (char) toupper(atoi(argv[4]));
+    	if(shape != 'L' && shape != 'I'){
+		std::cout << "Shape should be an L or I\n";
+		return 1;
+    	}
+    }else{
+	shape = 'L';
+    }
 
     AVT::VmbAPI::Examples::ApiController apiController;
     
     // Startup Vimba
-    err = apiController.StartUp();        
+    err = apiController.StartUp();
     if ( VmbErrorSuccess == err )
     {
 
@@ -47,7 +57,7 @@ int main( int argc, char* argv[] )
             if( VmbErrorSuccess == err )
             {
                 std::cout<<"Opening camera with ID: "<< strCameraID <<"\n";
-                err = apiController.StartContinuousImageAcquisition( strCameraID, nrDrones, ip, port);
+                err = apiController.StartContinuousImageAcquisition( strCameraID, nrDrones, ip, port, shape);
     
                 if ( VmbErrorSuccess == err )
                 {

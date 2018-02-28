@@ -12,14 +12,20 @@
 #define PSI_MAX_DIFF 0.35
 // If detection fails, change the exposure by this amount
 #define DELTA_EXPOSURE 50
-// Number of leds per drone
-#define NR_LEDS 3
 
 using namespace cv;
 using namespace std;
 
-DroneDetector::DroneDetector(unsigned int nrDrones) {
+DroneDetector::DroneDetector(unsigned int nrDrones, char shape) {
     this->nrDrones = nrDrones;
+    this->shape = shape;
+    switch(shape){
+	case 'I':
+		this->nrLeds = 4;
+		printf("nrLeds: %d",nrLeds);
+	default:
+		this->nrLeds = 3;
+    }
 }
 
 vector< vector<Point2f> > DroneDetector::PartitionPoints(vector<Point2f> points) {
@@ -29,7 +35,7 @@ vector< vector<Point2f> > DroneDetector::PartitionPoints(vector<Point2f> points)
     }
     Mat labels, centers;
     double sizeDouble = (double)points.size();
-    double ledsDouble = (double)NR_LEDS;
+    double ledsDouble = (double)nrLeds;
     double clusterDouble = sizeDouble/ledsDouble;
     int nrClusters = ceil(clusterDouble);
     std::cout << "trying to make " << nrClusters << " clusters\n";
@@ -49,60 +55,91 @@ vector< vector<Point2f> > DroneDetector::PartitionPoints(vector<Point2f> points)
 }
 
 DroneState DroneDetector::GetState(vector<Point2f> leds) {
-    std::cout << "New code\n";
-    std::vector<double> Distance;
-    Distance.resize(3);
-    //A left bottom, B right top, C left top, Lower right LED is off
-    //Distance[0] = 01 -> AB
-    //Distance[1] = 12 -> BC
-    //DIstance[2] = 20 -> CA
+    Point2f center,top;
+    double direction[2];
+    switch(shape){
+	case 'L':{
+	    	std::cout << "L Shape\n";
+    		std::vector<double> Distance;
+    		Distance.resize(3);
+    		//A left bottom, B right top, C left top, Lower right LED is off
+    		//Distance[0] = 01 -> AB
+    		//Distance[1] = 12 -> BC
+    		//DIstance[2] = 20 -> CA
 
-    std::cout << "Fill in the distances and find the largest one\n";
-    float max = 0;
-    int maxi = 0;
-    for(unsigned int i = 0; i < leds.size(); i++){
-	Distance[i] = norm(leds[(i+1)%NR_LEDS]-leds[i]);
-        if(Distance[i] > max){
-	    max = Distance[i];
-	    maxi = i;
+    		std::cout << "Fill in the distances and find the largest one\n";
+    		float max = 0;
+    		int maxi = 0;
+    		for(unsigned int i = 0; i < leds.size(); i++){
+			Distance[i] = norm(leds[(i+1)%nrLeds]-leds[i]);
+        		if(Distance[i] > max){
+	    			max = Distance[i];
+	    			maxi = i;
+			}
+    		}
+    		unsigned int C = (maxi+nrLeds-1)%nrLeds;
+
+    		std::cout << "Place AB to Distance[0]\n";
+    		if(maxi != 0){
+			float tempDist = Distance[0];
+			Distance[0] = Distance[maxi];
+			Distance[maxi] = tempDist;
+    		}
+    		std::cout << "Place C to final LED position\n";
+    		if(nrLeds-1 != C){
+    			Point2f temp = leds[nrLeds-1];
+    			leds[nrLeds-1] = leds[C];
+    			leds[C] = temp;
+    		}
+    		std::cout << "Place A to 0 and B to 1\n";
+    		Point2f first = leds[2] - leds[0];
+    		float tempX = first.x;
+    		first.x = -first.y;
+    		first.y = tempX;
+    		if(first.dot(leds[2]-leds[1]) < 0){
+			Point2f temp = leds[0];
+			leds[0] = leds[1];
+			leds[1] = temp;
+    		}
+    		center.x = (leds[0].x + leds[1].x)/2;
+    		center.y = (leds[0].y + leds[1].y)/2;
+    		Point2f top;
+		top.x = (leds[2].x + leds[1].x)/2;
+    		top.y = (leds[2].y + leds[1].y)/2;
+    		std::cout << "I changed some shit\n";
+    		direction[0] = top.x - center.x;
+		direction[1] = top.y - center.y;
+		break;
+	}
+	case 'I': {
+		float xSum = 0;
+		float ySum = 0;
+		for (unsigned int i = 0; i<leds.size(); i++){
+			xSum += leds[i].x;
+			ySum += leds[i].y;
+		}
+		double xAvg = xSum / leds.size();
+		double yAvg = ySum / leds.size();
+		Point2f avg(xAvg, yAvg);
+		std::vector<Point2f> outerLeds(2);
+		double max1 = 0;
+		double max2 = 0;
+		for(unsigned int i =0; i< leds.size(); i++){
+			double max = norm(Mat(avg),Mat(leds[i]));
+			if(max > max1 && max1 <= max2){
+				outerLeds[0] = leds[i];
+				max2 = max;
+			}else if(max > max2 && max2 < max1){
+				outerLeds[1] = leds[i];
+				max2 = max;
+			}
+		}
+		center = (outerLeds[0] + outerLeds[1]) / 2;
+		direction[0] = avg.x - center.x;
+		direction[1] = avg.y - center.y;
+		break;
 	}
     }
-    int C = (maxi+NR_LEDS-1)%NR_LEDS;
-
-    std::cout << "Place AB to Distance[0]\n";
-    if(maxi != 0){
-	float tempDist = Distance[0];
-	Distance[0] = Distance[maxi];
-	Distance[maxi] = tempDist;
-    }
-    std::cout << "Place C to final LED position\n";
-    if(NR_LEDS-1 != C){
-    	Point2f temp = leds[NR_LEDS-1];
-    	leds[NR_LEDS-1] = leds[C];
-    	leds[C] = temp;
-    }
-    std::cout << "Place A to 0 and B to 1\n";
-    Point2f first = leds[2] - leds[0];
-    float tempX = first.x;
-    first.x = -first.y;
-    first.y = tempX;
-    if(first.dot(leds[2]-leds[1]) < 0){
-	Point2f temp = leds[0];
-	leds[0] = leds[1];
-	leds[1] = temp;
-    }
-    Point2f center;
-    center.x = (leds[0].x + leds[1].x)/2;
-    center.y = (leds[0].y + leds[1].y)/2;
-    Point2f top;
-    top.x = (leds[2].x + leds[1].x)/2;
-    top.y = (leds[2].y + leds[1].y)/2;
-    std::cout << "I changed some shit\n";
-    //double direction[2] = {top.x, top.y};
-    double direction[2] = {top.x - center.x, top.y - center.y };
-
-
-
     std::cout << "calculate physical center\n";
     Point2f offset(X_OFF, Y_OFF);
     Point2f physicalCenter = center * PIXELS2METERS - offset;
@@ -124,11 +161,11 @@ DroneState DroneDetector::GetState(vector<Point2f> leds) {
     // According to conventions
     float *normalized = (float *) malloc(2*sizeof(float));
     float *original = (float *) malloc(2*sizeof(float));
-    *(original+0) = physicalCenter.x;
-    *(original+1) = -physicalCenter.y;
+    *(original+0) = -center.y;
+    *(original+1) = center.x;
     pixeltonormalized(normalized,original);
-    //Point2f pos(*(normalized+0), *(normalized+1));
-    Point2f pos(-physicalCenter.y, physicalCenter.x);
+    Point2f pos(*(normalized+0), *(normalized+1));
+    //Point2f pos(-physicalCenter.y, physicalCenter.x);
     state.pos = pos;
     state.psi = psi;
     //std::cout << state.pos << std::endl;
@@ -190,12 +227,12 @@ vector<DroneState> DroneDetector::FindDrones(Mat frame, int* deltaExposure) {
     }
     findContours(thresh, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 
-    if (contours.size() > NR_LEDS * nrDrones) {
+    if (contours.size() > nrLeds * nrDrones) {
 	std::cout << "too many leds, reducing exposure. leds: " << contours.size() << "\n";
         *deltaExposure = -DELTA_EXPOSURE;
         return vector<DroneState>();
     }
-    else if (contours.size() < NR_LEDS * nrDrones) {
+    else if (contours.size() < nrLeds * nrDrones) {
 	std::cout << "too little leds, boosting exposure. leds: " << contours.size() << "\n";
 	*deltaExposure = DELTA_EXPOSURE;
     }
@@ -215,7 +252,7 @@ vector<DroneState> DroneDetector::FindDrones(Mat frame, int* deltaExposure) {
 		while (erased == 1){
 			erased = 0;
 			for(unsigned int i = 0; i < partitioned.size();i++){
-				if(partitioned[i].size() !=  NR_LEDS){
+				if(partitioned[i].size() !=  nrLeds){
 					std::cout << "Drone " << i << " has too little leds and is deleted!\n";
 					partitioned.erase(partitioned.begin()+i);
 					//Check if deletion is correct

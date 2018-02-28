@@ -29,10 +29,10 @@ namespace Examples {
 // Parameters:
 //  [in]    pCamera             The camera the frame was queued at
 //
-FrameObserver::FrameObserver( CameraPtr pCamera, unsigned int nrDrones, const std::string& ip, const std::string& port)
+FrameObserver::FrameObserver( CameraPtr pCamera, unsigned int nrDrones, const std::string& ip, const std::string& port, char shape)
     :   IFrameObserver( pCamera )
     ,   udp(ip, port)
-    ,   detector(nrDrones)
+    ,   detector(nrDrones, shape)
 {
     exposure = 6000;
 }

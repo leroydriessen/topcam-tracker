@@ -6,13 +6,15 @@
 
 class DroneDetector {
     public:
-        DroneDetector(unsigned int nrDrones);
+        DroneDetector(unsigned int nrDrones, char shape);
 			
         DroneState GetState(std::vector<cv::Point2f> leds);
         std::vector<DroneState> FindDrones(cv::Mat frame, int* deltaIntensity);
 
     private:
-        unsigned int nrDrones;	
+        unsigned int nrDrones;
+	char shape;
+	unsigned int nrLeds;	
         std::vector<DroneState> previousStates;
 
         std::vector< std::vector<cv::Point2f> > PartitionPoints(std::vector<cv::Point2f> points); 
